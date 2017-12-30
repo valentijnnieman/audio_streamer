@@ -26,6 +26,9 @@ func main() {
 		chk(stream.Stop())
 	})
 	http.HandleFunc("/get", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Connection", "Keep-Alive")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Transfer-Encoding", "chunked")
 		w.Header().Set("Content-Type", "audio/wave")
 		for true {
