@@ -26,6 +26,11 @@ func main() {
 		chk(stream.Stop())
 	})
 	http.HandleFunc("/get", func(w http.ResponseWriter, r *http.Request) {
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			panic("expected http.ResponseWriter to be an http.Flusher")
+		}
+
 		w.Header().Set("Connection", "Keep-Alive")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -34,6 +39,7 @@ func main() {
 		for true {
 			if len(buffer) == len(buffer) {
 				binary.Write(w, binary.BigEndian, &buffer)
+				flusher.Flush() // Trigger "chunked" encoding and send a chunk...
 				return
 			}
 		}
