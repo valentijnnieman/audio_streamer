@@ -10,18 +10,20 @@ import (
 	"time"
 )
 
+const sampleRate = 44100
+const seconds = 2
+
 func main() {
 	portaudio.Initialize()
 	defer portaudio.Terminate()
-	buffer := make([]float32, 44100)
+	buffer := make([]float32, sampleRate * seconds)
 
-	stream, err := portaudio.OpenDefaultStream(0, 1, 44100, len(buffer), func(out []float32) {
-		resp, err := http.Get("http://localhost:8080/get")
+	stream, err := portaudio.OpenDefaultStream(0, 1, sampleRate, len(buffer), func(out []float32) {
+		resp, err := http.Get("http://localhost:8080/audio")
 		chk(err)
 		body, _ := ioutil.ReadAll(resp.Body)
 		responseReader := bytes.NewReader(body)
 		binary.Read(responseReader, binary.BigEndian, &buffer)
-		fmt.Println("buffer: ", buffer)
 		for i := range out {
 			out[i] = buffer[i]
 		}

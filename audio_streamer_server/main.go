@@ -6,26 +6,24 @@ import (
 	"net/http"
 )
 
+const sampleRate = 44100
+const seconds = 2
+
 func main() {
 
 	portaudio.Initialize()
 	defer portaudio.Terminate()
-	buffer := make([]float32, 44100)
-	stream, err := portaudio.OpenDefaultStream(1, 0, 44100, len(buffer), func(in []float32) {
+	buffer := make([]float32, sampleRate * seconds)
+	stream, err := portaudio.OpenDefaultStream(1, 0, sampleRate, len(buffer), func(in []float32) {
 		for i := range buffer {
 			buffer[i] = in[i]
 		}
 	})
 	chk(err)
+	chk(stream.Start())
+	defer stream.Close()
 
-	http.HandleFunc("/start", func(w http.ResponseWriter, r *http.Request) {
-		chk(stream.Start())
-		defer stream.Close()
-	})
-	http.HandleFunc("/stop", func(w http.ResponseWriter, r *http.Request) {
-		chk(stream.Stop())
-	})
-	http.HandleFunc("/get", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/audio", func(w http.ResponseWriter, r *http.Request) {
 		flusher, ok := w.(http.Flusher)
 		if !ok {
 			panic("expected http.ResponseWriter to be an http.Flusher")
@@ -37,11 +35,9 @@ func main() {
 		w.Header().Set("Transfer-Encoding", "chunked")
 		w.Header().Set("Content-Type", "audio/wave")
 		for true {
-			if len(buffer) == len(buffer) {
-				binary.Write(w, binary.BigEndian, &buffer)
-				flusher.Flush() // Trigger "chunked" encoding and send a chunk...
-				return
-			}
+			binary.Write(w, binary.BigEndian, &buffer)
+			flusher.Flush() // Trigger "chunked" encoding and send a chunk...
+			return
 		}
 	})
 
